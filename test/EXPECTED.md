@@ -1,24 +1,38 @@
 # Expected Results - `test/`
 
-This small dataset exists so you can verify your reconciliation logic against a known answer before running the larger `data/` set. If your numbers don't match these, your matching or fee math is off somewhere.
+This small dataset is a **known good day**: a hand-verified reconciliation you can check your engine against before running the larger `data/` set. It exercises every category the exercise defines, so if you reproduce this table exactly, your pipeline handles the full problem. If your numbers don't match, your matching or fee math is off somewhere.
 
-**Input:** 12 internal transactions, 13 settlement records.
+**Input:** 18 internal transactions, 19 settlement records. Five of those rows are deliberately malformed and must be quarantined, not reconciled - they are not breaks and don't appear in any count below.
 
 ## Reconciliation summary
 
-| Outcome                                            | Count |
-| -------------------------------------------------- | ----- |
-| Cleanly matched (6 sales + 2 refunds)              | 8     |
-| Unmatched - internal (in ledger, never settled)    | 1     |
-| Unmatched - settlement (settled, no ledger record) | 1     |
-| Amount mismatch (principal off beyond rounding)    | 1     |
-| Fee discrepancy (fees deviate from schedule)       | 1     |
-| Duplicate settlement (one payment settled twice)   | 1     |
+| Outcome                                                       | Count |
+| ------------------------------------------------------------- | ----- |
+| Cleanly matched (6 sales + 2 refunds)                         | 8     |
+| Unmatched - internal (in ledger, never settled)               | 1     |
+| Unmatched - settlement (settled, no ledger record)            | 1     |
+| Amount mismatch (principal off beyond rounding)               | 1     |
+| Fee discrepancy (fees deviate from schedule)                  | 1     |
+| Duplicate settlement (one payment settled twice)              | 1     |
+| Orphan refund (refund with no originating sale)               | 1     |
+| Split settlement (one capture settled in two parts) _(bonus)_ | 1     |
+| Wide-window timing (matched, but settled far outside T+1..3)  | 1     |
+| Malformed - quarantined (3 internal + 2 settlement)           | 5     |
 
-Notes:
+Row accounting: 18 internal = 6 clean sales + 2 clean refunds + 1 each of unmatched-internal, amount-mismatch, fee-discrepancy, duplicate, orphan-refund, wide-timing, split + 3 malformed. 19 settlement = 6 clean sales + 2 clean refunds + 1 unmatched-settlement + 1 amount + 1 fee + 2 duplicate + 1 orphan + 1 wide-timing + 2 split + 2 malformed.
 
-- The duplicate produces **two** settlement rows for **one** internal transaction - which is why there are 13 settlement records but only 8 clean matches plus the breaks.
-- The **fee discrepancy** row is deliberately tricky: its `settled_amount` is internally consistent with the fees the processor _reported_, so a check that only compares `settled_amount` against `gross − reported_fees` will miss it. You have to compare the reported fees against the **published schedule** (`fee_schedule.json`) to catch it.
-- Each **refund** references a real originating sale: its `merchant_ref` matches an existing `SALE` already in the ledger, so both refunds resolve to a prior order (that order's ref carries two internal rows and two settlement rows). Matching must therefore be type/sign aware - pair the negative refund settlement with the `REFUND` row, not the sale's positive settlement.
-- This set is deliberately clean of the harder categories: **0 orphan refunds, 0 split (partial) settlements, 0 wide-window timing cases, and 0 malformed rows**. Those all live only in `data/`.
-- Every transaction here is in the normal settlement window.
+## Money checks
+
+Raw sums over the **valid** rows (the 5 malformed rows excluded). These confirm your ingest and fee math independently of how you model breaks:
+
+| Check                                         | Value      |
+| --------------------------------------------- | ---------- |
+| Total gross (valid sales)                     | `6804.12`  |
+| Total refund gross (internal)                 | `-1557.02` |
+| Total settled (sum of all settlement rows)    | `5161.00`  |
+| Total fees deducted (interchange + processor) | `151.74`   |
+
+## Reading the table
+
+- The **wide-window timing** row is a fully matched pair - correct amount, correct fees - that simply settled outside the usual window. It's counted on its own line, not as a clean match, which is why "cleanly matched" is 6 sales rather than 7; whether you ultimately treat it as matched or flag it is your call.
+- The five **malformed** rows are quarantined, not breaks, and are excluded from every count and money check above.
