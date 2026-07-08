@@ -1,0 +1,27 @@
+# Secrets
+.env
+.env.*
+*.pem
+*.key
+
+# Java / Spring
+target/
+build/
+*.class
+.gradle/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Node / React
+node_modules/
+dist/
+.vite/
+*.local
+
+# IDE / OS
+.idea/
+.vscode/
+*.iml
+.DS_Store
+
+# Logs
+*.log
