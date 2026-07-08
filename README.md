@@ -36,10 +36,10 @@ Two datasets are provided:
 
 | Directory | Purpose                                                                                                                   |
 | --------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `test/`   | Small, hand-verifiable. `test/EXPECTED.md` gives the correct break counts so you can check your matching logic as you go. |
+| `test/`   | Small, hand-verifiable. `test/EXPECTED.md` gives the correct counts for **every** category - including orphan refunds, split settlements, wide-window timing, and malformed rows - so you can check your full pipeline as you go. |
 | `data/`   | Larger, realistic set with breaks of every category mixed in. This is what a "real" day looks like.                       |
 
-The `data/` set also includes a few deliberately malformed rows - a missing field, a non-numeric amount, an unexpected currency, and the like. Quarantine them gracefully rather than letting them crash the run.
+Both sets include a few deliberately malformed rows - a missing field, a non-numeric amount, an unexpected currency, and the like. Quarantine them gracefully rather than letting them crash the run; they are not breaks and must not appear in any break count.
 
 **The formats are intentionally different**, as they are in real life - you're integrating two systems that were never designed to talk to each other:
 
@@ -69,7 +69,7 @@ The `data/` set also includes a few deliberately malformed rows - a missing fiel
 | `currency`                               |                                                                               |
 | `settlement_date`                        | The date it settled - **typically 1–3 days after** `captured_at`              |
 
-> **No shared primary key.** `internal_txn_id` never appears on the settlement side. `merchant_ref` is the natural link, but it's blank on a large share of settlement rows - so you'll need a documented fallback strategy (e.g. merchant + card + amount) for the rows it can't cover. Matching is one of several things you have to get right, alongside the fee math and correct break classification - not a trick in itself.
+> **No shared primary key.** `internal_txn_id` never appears on the settlement side. `merchant_ref` is the natural link, but it's blank on a large share of settlement rows - so you'll need a documented fallback strategy for the rows it can't cover. Note the two sides don't share an amount: the ledger carries **gross**, the settlement carries **net** (gross minus fees). A fallback on "merchant + card + amount" therefore has to compare the settlement's net against each candidate sale's **fee-adjusted expected net**, not its gross - so matching these rows already depends on the fee math. Matching is one of several things you have to get right, alongside the fee math and correct break classification - not a trick in itself.
 
 ---
 
@@ -98,10 +98,10 @@ Plus a flat **processor markup** applied to every card: **0.30% + $0.05**.
 
 **Refunds** settle at the full negative gross with **no fees** (fees are not returned). A refund echoes the **same `merchant_ref` as its original sale**, so a refunded order appears on the settlement side as a positive sale settlement _and_ a negative refund settlement under that one reference - pair them by reference **and** type/sign; the negative row is not a duplicate of the positive one.
 
-Because a correct match depends on the fee math, a settlement can be wrong in two different ways, and you should tell them apart:
+Because a correct match depends on the fee math, a settlement can be wrong in two different ways. Tell them apart by asking whether the settled amount is internally consistent with the fees the processor _reported_:
 
-- the **principal** is off (the settled amount doesn't reconcile even after correct fees), vs.
-- the **fees** are off (fees deviate from the schedule, even though the settled amount is internally consistent with the fees the processor reported).
+- **Amount mismatch (principal off):** `settled_amount ≠ gross − reported_interchange − reported_processor_fee` (beyond your rounding tolerance). The settled amount can't be explained even by the fees the processor itself reported, so the principal is wrong. The reported fees may still match the schedule.
+- **Fee discrepancy (fees off):** `settled_amount = gross − reported_interchange − reported_processor_fee` (it _is_ internally consistent), but the reported fees deviate from the published schedule. A check that only compares `settled_amount` against `gross − reported_fees` will pass - you have to compare the reported fees against `fee_schedule.json` to catch it.
 
 ---
 
@@ -113,8 +113,8 @@ Your report should identify at least these break categories. Names are yours to 
 - **Unmatched - settlement**: settled with no ledger record. A real risk (possible fraud or a missed booking).
 - **Amount mismatch**: matched, but the settled principal is off by more than rounding.
 - **Fee discrepancy**: fees deviate from the published schedule - we may have been overcharged.
-- **Duplicate settlement**: the same payment settled more than once. We'd be double-paid.
-- **Orphan refund**: a refund whose `merchant_ref` matches **no** SALE anywhere in the ledger - a refund with no originating sale. There's no special marker; you detect it by the absence of a matching sale reference.
+- **Duplicate settlement**: the same payment settled more than once - the settlement rows **repeat** the expected net, and we'd be double-paid. Don't confuse this with a **split settlement** (see the open questions below), where multiple rows for one capture instead **sum** to the expected net. Distinguishing "rows that each repeat the net" from "rows that sum to the net" matters for your duplicate count even if you don't fully handle splits.
+- **Orphan refund**: a refund whose `merchant_ref` matches **no** SALE anywhere in the ledger - a refund with no originating sale. There's no special marker; you detect it by the absence of a matching sale reference. This is a **separate pass** from settlement matching: an orphan refund may still settle cleanly against its own settlement row, so a match-first pipeline that stops at "the refund settled fine" will miss it. Report it as its own break rather than counting it as cleanly matched.
 
 ---
 
@@ -136,7 +136,7 @@ These have no single right answer. Make a call, and be ready to explain it:
 
 1. **Amount tolerance** - how close is "matched"? What do you do about sub-cent rounding? Reconstructing the expected settled amount a slightly different way than the source data can differ by a cent, so pick a tolerance that absorbs those sub-cent differences rather than flagging them as breaks.
 2. **Date window** - settlement usually lands in 1–3 days. The data contains a few that settle much later. Do you still match those, or flag them? Why?
-3. **Split settlements** - a single capture can settle as multiple partial rows that sum to the expected net. How would you handle that? _(bonus)_
+3. **Split settlements** - a single capture can settle as multiple partial rows that _sum_ to the expected net (fees apportioned across the parts), as opposed to a duplicate where each row repeats the full net. How would you handle that, and how do you keep split rows from being miscounted as duplicates? _(bonus)_
 
 We'd rather see a documented, defensible choice than an attempt to handle everything.
 
