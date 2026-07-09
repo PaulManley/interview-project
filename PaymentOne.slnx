@@ -4,6 +4,8 @@
     <File Path="Directory.Packages.props" />
     <File Path="fee_schedule.json" />
     <File Path="GlobalUsing.cs" />
+    <File Path="PromptExamples.md" />
+    <File Path="ReadMe.md" />
   </Folder>
   <Project Path="Common/Interview.Common.csproj" />
   <Project Path="DBMigrator/Interview.DBMigrator.csproj" Id="6d92efc2-805c-41da-b5ff-2627073f3c98" />
