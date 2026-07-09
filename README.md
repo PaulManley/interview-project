@@ -6,7 +6,7 @@ Short Video:  https://www.loom.com/share/e30fec0761ff46cc9351b1726b9d1bdc
 
 ## How to Run
 These will all start-up docker to run mysql.  There is a persisted volume, but the unit tests will delete all the data from most tests.
-The only environmental variables is the 
+The only environmental variables are the data path and mysql password.
 
 ### Visual Studio
 If you're in Visual Studio 2026 ( any edition ), you should just be able to hit F5 if you have the Interview.Portal set as your startup app.
