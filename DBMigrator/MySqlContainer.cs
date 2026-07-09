@@ -14,11 +14,17 @@ public sealed class MySqlContainerSetup : IAsyncDisposable
 		if ( _mySqlContainer is not null )
 			return;
 
+		var mysqlDataPath = Path.Combine( Environment.GetFolderPath( Environment.SpecialFolder.LocalApplicationData ), "InterviewProject", "mysql-data" );
+		Directory.CreateDirectory( mysqlDataPath );
+
+		var mysqlRootPassword = Environment.GetEnvironmentVariable( "INTERVIEW_MYSQL_ROOT_PASSWORD" ) ?? "InterviewDevRootPwd1!";
+
 		_mySqlContainer = new MySqlBuilder()
 			.WithImage( "mysql:latest" )
 			.WithDatabase( "Interview20260708" )
 			.WithUsername( "root" )
-			.WithPassword( Guid.NewGuid().ToBase30String().Left( 10 ) )
+			.WithPassword( mysqlRootPassword )
+			.WithBindMount( mysqlDataPath, "/var/lib/mysql" )
 			.Build();
 
 		await _mySqlContainer.StartAsync();
