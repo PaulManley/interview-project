@@ -1,0 +1,65 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<IsPackable>false</IsPackable>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="coverlet.collector" />
+		<PackageReference Include="Ductus.FluentDocker" />
+		<PackageReference Include="Ductus.FluentDocker.XUnit" />
+		<PackageReference Include="Microsoft.NET.Test.Sdk" />
+		<PackageReference Include="Testcontainers" />
+		<PackageReference Include="Testcontainers.MySql" />
+		<PackageReference Include="Testcontainers.XunitV3" />
+		<PackageReference Include="xunit.runner.visualstudio" />
+		<PackageReference Include="xunit.v3" />
+		<PackageReference Include="xunit.v3.common" />
+		<PackageReference Include="Microsoft.Extensions.Logging" />
+		<PackageReference Include="Microsoft.Extensions.Logging.Console" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\Common\Interview.Common.csproj" />
+		<ProjectReference Include="..\DBMigrator\Interview.DBMigrator.csproj" />
+		<ProjectReference Include="..\Import\Interview.Import.csproj" />
+		<ProjectReference Include="..\Repository\Interview.Repository.csproj" />
+		<ProjectReference Include="..\Util\Interview.Util.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Using Include="Xunit" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Update="DataSets\goofy1_internal_transactions.csv">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="DataSets\official_internal_transactions.csv">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="DataSets\official_processor_settlement.json">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="DataSets\test_internal_transactions.csv">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="DataSets\test_processor_settlement.json">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+	</ItemGroup>
+
+	<ItemGroup>
+		<Compile Include="..\GlobalUsing.cs" Link="GlobalUsing.cs" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Content Include="..\fee_schedule.json" Link="DataSets\fee_schedule.json">
+	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	  </Content>
+	</ItemGroup>
+	
+</Project>

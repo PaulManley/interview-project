@@ -1,0 +1,96 @@
+@page
+@model UploadFilesAndRunReconciliationModel
+@{
+	ViewData["Title"] = "Upload Files and Run Reconciliation";
+}
+
+<div class="container mt-5">
+	<h1>Upload Files and Run Reconciliation</h1>
+
+	<div class="alert alert-info alert-dismissible fade show" role="alert">
+		<strong>Instructions:</strong> Please upload both files at once to ensure accurate reconciliation. Select the Settlement Entry file and Transaction Ledger file, then click the "Upload and Process Files" button to proceed.
+		<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+	</div>
+
+	@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+	{
+		<div class="alert alert-danger alert-dismissible fade show" role="alert">
+			@Model.ErrorMessage
+			<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+		</div>
+	}
+
+	<form method="post" enctype="multipart/form-data" class="row g-3">
+		<div class="col-md-6">
+			<div class="card">
+				<div class="card-header">
+					<h5>Settlement Entry File</h5>
+				</div>
+				<div class="card-body">
+					<div class="mb-3">
+						<label for="settlementFile" class="form-label">Upload Settlement Entry File</label>
+						<input class="form-control" type="file" id="settlementFile" name="settlementFile" accept=".csv,.txt" />
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<div class="col-md-6">
+			<div class="card">
+				<div class="card-header">
+					<h5>Transaction Ledger File</h5>
+				</div>
+				<div class="card-body">
+					<div class="mb-3">
+						<label for="transactionLedgerFile" class="form-label">Upload Transaction Ledger File</label>
+						<input class="form-control" type="file" id="transactionLedgerFile" name="transactionLedgerFile" accept=".csv,.txt" />
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<div class="col-12">
+			<button type="submit" class="btn btn-primary">Upload and Process Files</button>
+		</div>
+	</form>
+
+	@if (!string.IsNullOrEmpty(Model.SettlementFileId) || !string.IsNullOrEmpty(Model.TransactionFileId))
+	{
+		<hr class="my-4" />
+		<h3>Upload Results</h3>
+
+		<div class="row">
+			@if (!string.IsNullOrEmpty(Model.SettlementFileId))
+			{
+				<div class="col-md-6">
+					<div class="card">
+						<div class="card-header bg-success text-white">
+							<h5>Settlement Entry File</h5>
+						</div>
+						<div class="card-body">
+							<p><strong>File ID:</strong> @Model.SettlementFileId</p>
+							<p><strong>Rows Uploaded:</strong> @Model.SettlementRowCount</p>
+							<a href="@Url.Page("SettlementEntryFile", new { fileId = Model.SettlementFileId })" class="btn btn-info">View Settlement Entries</a>
+						</div>
+					</div>
+				</div>
+			}
+
+			@if (!string.IsNullOrEmpty(Model.TransactionFileId))
+			{
+				<div class="col-md-6">
+					<div class="card">
+						<div class="card-header bg-success text-white">
+							<h5>Transaction Ledger File</h5>
+						</div>
+						<div class="card-body">
+							<p><strong>File ID:</strong> @Model.TransactionFileId</p>
+							<p><strong>Rows Uploaded:</strong> @Model.TransactionRowCount</p>
+							<a href="@Url.Page("TransactionLedgerFile", new { fileId = Model.TransactionFileId })" class="btn btn-info">View Transaction Ledger</a>
+						</div>
+					</div>
+				</div>
+			}
+		</div>
+	}
+</div>

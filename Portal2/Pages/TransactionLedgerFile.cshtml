@@ -1,0 +1,113 @@
+@page
+@model TransactionLedgerFileModel
+@{
+	ViewData["Title"] = "Transaction Ledger File";
+}
+
+<div class="container-fluid mt-5">
+	<div class="row mb-4">
+		<div class="col-md-6">
+			<h1>Transaction Ledger File</h1>
+		</div>
+		<div class="col-md-6 text-end">
+			<a href="@Url.Page("UploadFilesAndRunReconciliation")" class="btn btn-secondary">Upload Another File</a>
+		</div>
+	</div>
+
+	@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+	{
+		<div class="alert alert-danger alert-dismissible fade show" role="alert">
+			@Model.ErrorMessage
+			<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+		</div>
+	}
+
+	@if (Model.TransactionLedgers == null || Model.TransactionLedgers.Length == 0)
+	{
+		<div class="alert alert-info">
+			No transaction ledger entries found for this file.
+		</div>
+	}
+	else
+	{
+		<div class="table-responsive">
+			<table class="table table-striped table-hover">
+				<thead class="table-dark">
+					<tr>
+						<th>Ref Tran ID</th>
+						<th>Merchant ID</th>
+						<th>Merchant Ref No</th>
+						<th>Card Type</th>
+						<th>Card Last 4</th>
+						<th>Gross Amount</th>
+						<th>Currency</th>
+						<th>Tran Type</th>
+						<th>Captured At</th>
+						<th>Expected Interchange</th>
+						<th>Expected Processor Fee</th>
+						<th>Expected Settled</th>
+						<th>Status</th>
+						<th>Error</th>
+					</tr>
+				</thead>
+				<tbody>
+					@foreach (var ledger in Model.TransactionLedgers)
+					{
+						<tr>
+							<td>@ledger.RefTranId</td>
+							<td>@ledger.MerchantId</td>
+							<td>@ledger.MerchantReferenceNo</td>
+							<td>@ledger.CardType</td>
+							<td>@ledger.CardLast4</td>
+							<td>
+								@if (ledger.GrossAmount.HasValue)
+								{
+									@($"{ledger.GrossAmount.Value / 100.0:F2}")
+								}
+							</td>
+							<td>@ledger.Currency</td>
+							<td>@ledger.TranType</td>
+							<td>@ledger.CapturedAt?.ToString("yyyy-MM-dd HH:mm:ss")</td>
+							<td>
+								@if (ledger.ExpectedInterchangeCents.HasValue)
+								{
+									@($"{ledger.ExpectedInterchangeCents.Value / 100.0:F2}")
+								}
+							</td>
+							<td>
+								@if (ledger.ExpectedProcessorFeeCents.HasValue)
+								{
+									@($"{ledger.ExpectedProcessorFeeCents.Value / 100.0:F2}")
+								}
+							</td>
+							<td>
+								@if (ledger.ExpectedSettledCents.HasValue)
+								{
+									@($"{ledger.ExpectedSettledCents.Value / 100.0:F2}")
+								}
+							</td>
+							<td>
+								@if (!string.IsNullOrEmpty(ledger.Status))
+								{
+									<span class="badge bg-secondary">@ledger.Status</span>
+								}
+							</td>
+							<td>
+								@if (!string.IsNullOrEmpty(ledger.Error))
+								{
+									<span class="text-danger">@ledger.Error</span>
+								}
+							</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+		</div>
+
+		<div class="mt-4">
+			<p class="text-muted">
+				Total Records: <strong>@Model.TransactionLedgers.Length</strong>
+			</p>
+		</div>
+	}
+</div>

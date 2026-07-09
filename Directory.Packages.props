@@ -1,0 +1,32 @@
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageVersion Include="coverlet.collector" Version="6.0.4" />
+    <PackageVersion Include="CsvHelper" Version="33.1.0" />
+    <PackageVersion Include="Ductus.FluentDocker" Version="2.85.0" />
+    <PackageVersion Include="Ductus.FluentDocker.XUnit" Version="2.85.0" />
+    <PackageVersion Include="FluentMigrator" Version="8.0.1" />
+    <PackageVersion Include="FluentMigrator.Extensions.SqlServer" Version="8.0.1" />
+    <PackageVersion Include="FluentMigrator.Runner.MySql" Version="8.0.1" />
+    <PackageVersion Include="FluentMigrator.Runner.SQLite" Version="8.0.1" />
+    <PackageVersion Include="linq2db" Version="6.3.0" />
+    <PackageVersion Include="linq2db.MySql" Version="6.3.0" />
+    <PackageVersion Include="linq2db.SQLite" Version="6.3.0" />
+    <PackageVersion Include="linq2db.SqlServer" Version="6.3.0" />
+    <PackageVersion Include="Microsoft.Extensions.Logging" Version="10.0.9" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Console" Version="10.0.9" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageVersion Include="MySqlConnector" Version="2.6.1" />
+    <PackageVersion Include="NewId" Version="4.0.1" />
+    <PackageVersion Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageVersion Include="Scrutor" Version="7.0.0" />
+    <PackageVersion Include="Testcontainers" Version="4.13.0" />
+    <PackageVersion Include="Testcontainers.MySql" Version="4.13.0" />
+    <PackageVersion Include="Testcontainers.XunitV3" Version="4.13.0" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.4" />
+    <PackageVersion Include="xunit.v3" Version="3.2.2" />
+    <PackageVersion Include="xunit.v3.common" Version="3.2.2" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,15 @@
+<Solution>
+  <Folder Name="/Config/">
+    <File Path="copilot-instructions.md" />
+    <File Path="Directory.Packages.props" />
+    <File Path="fee_schedule.json" />
+    <File Path="GlobalUsing.cs" />
+  </Folder>
+  <Project Path="Common/Interview.Common.csproj" />
+  <Project Path="DBMigrator/Interview.DBMigrator.csproj" Id="6d92efc2-805c-41da-b5ff-2627073f3c98" />
+  <Project Path="Import/Interview.Import.csproj" />
+  <Project Path="Portal2/Interview.Portal.csproj" Id="2b30cf0e-74a4-49e4-8bd4-01e5cf30f40e" />
+  <Project Path="Repository/Interview.Repository.csproj" Id="de66316a-bbeb-45bc-9396-192567fac585" />
+  <Project Path="Test/Interview.Test.csproj" Id="19119017-fb60-4d0b-b2fe-4bddb5ee842e" />
+  <Project Path="Util/Interview.Util.csproj" Id="02205cf7-5f91-48fe-b722-1758e66d7d30" />
+</Solution>

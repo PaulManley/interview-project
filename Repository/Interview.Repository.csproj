@@ -1,0 +1,31 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>disable</Nullable>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="linq2db" />
+		<PackageReference Include="linq2db.MySql" />
+		<PackageReference Include="linq2db.SQLite" />
+		<PackageReference Include="linq2db.SqlServer" />
+		<PackageReference Include="Microsoft.Extensions.Logging" />
+		<PackageReference Include="Microsoft.Extensions.Logging.Console" />
+		<PackageReference Include="MySqlConnector" />
+		<PackageReference Include="NewId" />
+		<PackageReference Include="Testcontainers" />
+		<PackageReference Include="Testcontainers.MySql" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\Common\Interview.Common.csproj" />
+		<ProjectReference Include="..\Util\Interview.Util.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Compile Include="..\GlobalUsing.cs" Link="GlobalUsing.cs" />
+	</ItemGroup>
+
+</Project>

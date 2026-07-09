@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\Common\Interview.Common.csproj" />
+		<ProjectReference Include="..\DBMigrator\Interview.DBMigrator.csproj" />
+		<ProjectReference Include="..\Import\Interview.Import.csproj" />
+		<ProjectReference Include="..\Repository\Interview.Repository.csproj" />
+		<ProjectReference Include="..\Util\Interview.Util.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Testcontainers" />
+		<PackageReference Include="Testcontainers.MySql" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Compile Include="..\GlobalUsing.cs" Link="GlobalUsing.cs" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Content Update="DataSets\fee_schedule.json">
+	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	  </Content>
+	</ItemGroup>
+
+</Project>

@@ -1,0 +1,207 @@
+@page
+@model TransactionLedgerDetailModel
+@{
+	ViewData["Title"] = "Transaction Ledger Detail";
+}
+
+<div class="container mt-5">
+	<div class="row mb-4">
+		<div class="col-md-8">
+			<h1>Transaction Ledger Detail</h1>
+		</div>
+		<div class="col-md-4 text-end">
+			<a href="@Url.Page("UploadFilesAndRunReconciliation")" class="btn btn-secondary">Back to Upload</a>
+		</div>
+	</div>
+
+	@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+	{
+		<div class="alert alert-danger alert-dismissible fade show" role="alert">
+			@Model.ErrorMessage
+			<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+		</div>
+	}
+
+	@if (Model.Transaction == null)
+	{
+		<div class="alert alert-info">
+			No transaction found for this ID.
+		</div>
+	}
+	else
+	{
+		<div class="row">
+			<div class="col-md-8">
+				<div class="card mb-4">
+					<div class="card-header bg-primary text-white">
+						<h5 class="mb-0">Transaction Information</h5>
+					</div>
+					<div class="card-body">
+						<div class="row mb-3">
+							<div class="col-md-6">
+								<strong>Reference Transaction ID:</strong>
+								<p>@Model.Transaction.RefTranId</p>
+							</div>
+							<div class="col-md-6">
+								<strong>Merchant ID:</strong>
+								<p>@Model.Transaction.MerchantId</p>
+							</div>
+						</div>
+
+						<div class="row mb-3">
+							<div class="col-md-6">
+								<strong>Merchant Reference Number:</strong>
+								<p>@Model.Transaction.MerchantReferenceNo</p>
+							</div>
+							<div class="col-md-6">
+								<strong>Card Type:</strong>
+								<p>@Model.Transaction.CardType</p>
+							</div>
+						</div>
+
+						<div class="row mb-3">
+							<div class="col-md-6">
+								<strong>Card Last 4:</strong>
+								<p>@Model.Transaction.CardLast4</p>
+							</div>
+							<div class="col-md-6">
+								<strong>Transaction Type:</strong>
+								<p>@Model.Transaction.TranType</p>
+							</div>
+						</div>
+
+						<div class="row mb-3">
+							<div class="col-md-6">
+								<strong>Captured At:</strong>
+								<p>
+									@if (Model.Transaction.CapturedAt.HasValue)
+									{
+										@Model.Transaction.CapturedAt.Value.ToString("yyyy-MM-dd HH:mm:ss")
+									}
+								</p>
+							</div>
+							<div class="col-md-6">
+								<strong>Currency:</strong>
+								<p>@Model.Transaction.Currency</p>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="card mb-4">
+					<div class="card-header bg-success text-white">
+						<h5 class="mb-0">Amount Information</h5>
+					</div>
+					<div class="card-body">
+						<div class="row mb-3">
+							<div class="col-md-6">
+								<strong>Gross Amount:</strong>
+								<p>
+									@if (Model.Transaction.GrossAmount.HasValue)
+									{
+										@($"{Model.Transaction.GrossAmount.Value / 100.0:F2}")
+									}
+								</p>
+							</div>
+							<div class="col-md-6">
+								<strong>Expected Interchange:</strong>
+								<p>
+									@if (Model.Transaction.ExpectedInterchangeCents.HasValue)
+									{
+										@($"{Model.Transaction.ExpectedInterchangeCents.Value / 100.0:F2}")
+									}
+								</p>
+							</div>
+						</div>
+
+						<div class="row mb-3">
+							<div class="col-md-6">
+								<strong>Expected Processor Fee:</strong>
+								<p>
+									@if (Model.Transaction.ExpectedProcessorFeeCents.HasValue)
+									{
+										@($"{Model.Transaction.ExpectedProcessorFeeCents.Value / 100.0:F2}")
+									}
+								</p>
+							</div>
+							<div class="col-md-6">
+								<strong>Expected Settled Amount:</strong>
+								<p>
+									@if (Model.Transaction.ExpectedSettledCents.HasValue)
+									{
+										@($"{Model.Transaction.ExpectedSettledCents.Value / 100.0:F2}")
+									}
+								</p>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="card mb-4">
+					<div class="card-header bg-warning text-dark">
+						<h5 class="mb-0">Status & Error Information</h5>
+					</div>
+					<div class="card-body">
+						<div class="row mb-3">
+							<div class="col-md-6">
+								<strong>Status:</strong>
+								<p>
+									@if (!string.IsNullOrEmpty(Model.Transaction.Status))
+									{
+										<span class="badge bg-secondary">@Model.Transaction.Status</span>
+									}
+									else
+									{
+										<span class="text-muted">—</span>
+									}
+								</p>
+							</div>
+							<div class="col-md-6">
+								<strong>Record Number:</strong>
+								<p>@(Model.Transaction.RecordNumber?.ToString() ?? "—")</p>
+							</div>
+						</div>
+
+						@if (!string.IsNullOrEmpty(Model.Transaction.Error))
+						{
+							<div class="row mb-3">
+								<div class="col-12">
+									<strong>Error:</strong>
+									<p class="text-danger">@Model.Transaction.Error</p>
+								</div>
+							</div>
+							<div class="row mb-3">
+								<div class="col-12">
+									<strong>Error Code:</strong>
+									<p class="text-danger">@Model.Transaction.ErrorCode</p>
+								</div>
+							</div>
+						}
+					</div>
+				</div>
+			</div>
+
+			<div class="col-md-4">
+				<div class="card">
+					<div class="card-header bg-info text-white">
+						<h5 class="mb-0">Quick Info</h5>
+					</div>
+					<div class="card-body">
+						<p>
+							<strong>File Import ID:</strong><br />
+							<code>@Model.Transaction.FileImportId</code>
+						</p>
+						<p>
+							<strong>Transaction ID:</strong><br />
+							<code>@Model.Transaction.Id</code>
+						</p>
+						<p>
+							<strong>Created:</strong><br />
+							@Model.Transaction.Created.ToString("yyyy-MM-dd HH:mm:ss")
+						</p>
+					</div>
+				</div>
+			</div>
+		</div>
+	}
+</div>
