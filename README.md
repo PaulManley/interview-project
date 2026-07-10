@@ -53,6 +53,9 @@ I might also move to TUnit later.
 ## UI
 It is basic.  I didn't put in a "List Files" or "List Unreconciled Item" or "Reports" page.  But when you import a Transaction Ledger file and a Settlement file we run the Reconciliation.
 
+## BIGGEST Change I'd make
+I didn't create an in-sql pre-match before getting to the IPatternMatching loop.  That would be the biggest gain.
+
 # Improvements
 
 - I would run reconciliation as a background process
