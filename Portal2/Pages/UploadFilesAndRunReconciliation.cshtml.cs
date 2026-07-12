@@ -113,11 +113,13 @@ public class UploadFilesAndRunReconciliationModel : PageModel
 				}
 			}
 
+			/*
 			if ( tranFile && settlementFile )
 			{
 				var nonReconciledItems = await _fileRepository.LoadUnreconciled();
 				await _reconciler.Process( nonReconciledItems.Settlements, nonReconciledItems.Transactions );
 			}
+			*/
 
 			return Page();
 		}

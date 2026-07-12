@@ -15,6 +15,17 @@ using System.Text;
 
 namespace Interview.DBMigrator;
 
+public static class GlobalExt
+{
+	public static IServiceCollection RegisterDBMigrator(this IServiceCollection services )
+	{
+		services.AddSingleton( provider => provider.GetRequiredService<ILoggerFactory>().CreateLogger( nameof( Interview.DBMigrator.GlobalSetupMySQL ) ) );
+		services.AddTransient<Interview.DBMigrator.GlobalSetupMySQL>();
+
+		return services;
+	}
+}
+
 public class GlobalSetupMySQL(ILogger L, IConnectionFactory ConnFactory )
 {
 	public string[] TAGS = [];

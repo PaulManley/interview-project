@@ -7,6 +7,10 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+	  <None Remove="Sproc\20260711_Reconciliation_DirectMatch.sql" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<PackageReference Include="FluentMigrator" />
 		<PackageReference Include="FluentMigrator.Extensions.SqlServer" />
 		<PackageReference Include="FluentMigrator.Runner.MySql" />
@@ -26,6 +30,16 @@
 
 	<ItemGroup>
 		<Compile Include="..\GlobalUsing.cs" Link="GlobalUsing.cs" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <EmbeddedResource Include="Sproc\20260711_Reconciliation_DirectMatch.sql" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Compile Update="Migration\v20260711_0002_Sprocs.cs">
+	    <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+	  </Compile>
 	</ItemGroup>
 
 </Project>

@@ -6,6 +6,50 @@ namespace Interview.Util.Ext;
 
 public static partial class StringExtension
 {
+
+	public static bool? BOOLN( this string s )
+	{
+		s = s.TrimSafe();
+		if ( s == null ) return null;
+		if ( s.IsEqual( "0" ) ) return false;
+		if ( s.IsEqual( "1" ) ) return true;
+		if ( s.IsEqual( "no" ) ) return false;
+		if ( s.IsEqual( "yes" ) ) return true;
+		if ( s.IsEqual( "false" ) ) return false;
+		if ( s.IsEqual( "on" ) ) return true;
+		if ( s.IsEqual( "off" ) ) return false;
+		if ( s.IsEqual( "true" ) ) return true;
+		if ( s.IsEqual( "success" ) ) return true;  // a little goofy that sometimes we get words
+		if ( bool.TryParse( s, out var value ) ) return value;
+		return null;
+
+	}
+
+	public static bool BOOL( this string s, bool def = false )
+	{
+		s = s.TrimSafe();
+		if ( s == null ) return def;
+		if ( s.IsEqual( "0" ) ) return false;
+		if ( s.IsEqual( "1" ) ) return true;
+		if ( s.IsEqual( "no" ) ) return false;
+		if ( s.IsEqual( "yes" ) ) return true;
+		if ( s.IsEqual( "false" ) ) return false;
+		if ( s.IsEqual( "true" ) ) return true;
+		if ( s.IsEqual( "on" ) ) return true;
+		if ( s.IsEqual( "off" ) ) return false;
+		if ( s.IsEqual( "success" ) ) return true;  // a little goofy that sometimes we get words
+		if ( bool.TryParse( s, out var value ) ) return value;
+		return def;
+
+	}
+
+	public static string TrimSafe( this string s )
+	{
+		if ( s != null )
+			return s.Trim();
+		return s;
+	}
+
 	public static bool SafeContains( this string s, string valueToCompare, StringComparison stringComparison = StringComparison.OrdinalIgnoreCase )
 	{
 		if ( s == null && valueToCompare == null ) return true;

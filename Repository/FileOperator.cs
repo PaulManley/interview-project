@@ -2,6 +2,7 @@
 using Interview.Repository.POCO;
 using LinqToDB;
 using LinqToDB.Async;
+using LinqToDB.Data;
 using System.Xml.Linq;
 
 namespace Interview.Repository;
@@ -149,6 +150,7 @@ public class FileOperator( IConnectionFactory Conn, ILogger L ) : IFileOperation
 		int rowsAffected = await db.GetTable<SettlementEntry>()
 			.Where( x => x.Id == SettlementEntryId )
 			.Set( t => t.TransactionLedgerId, TransactionLedgerId )
+			.Set( t => t.Status ,"Match")
 			.UpdateAsync();
 
 		ZAssert.True( rowsAffected == 1, "Incorrect number of rows updated",structuredObject: new { rowsAffected } );
@@ -156,13 +158,106 @@ public class FileOperator( IConnectionFactory Conn, ILogger L ) : IFileOperation
 	}
 
 
-	public async Task<(SettlementEntry[] Settlements, TransactionLedger[] Transactions)> LoadUnreconciled()
+	public async Task<(SettlementEntry[] Settlements, TransactionLedger[] Transactions)> LoadUnreconciled( DateTimeOffset? settlementDateStart = null, DateTimeOffset? settlementDateEnd = null  )
 	{
 		using var db = Conn.Create();
-		var retSE = await db.GetTable<SettlementEntry>().Where( x => x.Status == "Imported" ).ToArrayAsync();
-		var retTL = await db.GetTable<TransactionLedger>().Where( x => x.Status == "Imported" ).ToArrayAsync();
+
+		string queryGetTrans =
+"""
+SELECT T.*
+	FROM TransactionLedger T
+		LEFT OUTER JOIN SettlementEntry S ON ( S.TransactionLedgerId = T.Id )
+	WHERE 1=1
+		AND T.Status = 'Imported'
+		AND S.Id IS NULL;
+""";
+
+		var retSE = await db.GetTable<SettlementEntry>().Where( x => x.Status == "Imported" ).Where(x => x.TransactionLedgerId == null).ToArrayAsync();
+		var retTL = await db.QueryAsync<TransactionLedger>(queryGetTrans);
 
 		return (retSE.ToSafeArray(), retTL.ToSafeArray());
+	}
+
+	public async Task<int> Reconciliation_MainMatching( DateTimeOffset? settlementDateStart = null, DateTimeOffset? settlementDateEnd = null )
+	{
+		using var db = Conn.Create();
+
+		try
+		{
+			List<DataParameter> prams = new List<DataParameter>();
+			prams.Add( new DataParameter( "dtStart", settlementDateStart.IsDateTimeValid() ? settlementDateStart.Value.Date : null ) { DataType = DataType.Date } );
+			prams.Add( new DataParameter( "dtEnd", settlementDateEnd.IsDateTimeValid() ? settlementDateStart.Value.Date : null ) { DataType = DataType.Date } );
+
+			var rowsUpdated = await db.ExecuteProcAsync
+			(
+				"Reconciliation_DirectMatch",
+				prams.ToArray()
+			);
+
+			return rowsUpdated;
+		}
+		catch(Exception exc)
+		{
+			exc.AddParam( "Sproc", "Reconciliation_MainMatching" );
+			exc.AddParam( nameof( settlementDateStart ), $"{settlementDateStart}" );	// For non-trivial calls I often add the parameters on the call upward to the exception
+			exc.AddParam( nameof( settlementDateEnd ), $"{settlementDateEnd}" );
+			throw;
+		}
+	}
+
+	public async Task<int> Reconciliation_MatchingWithWiggle( int WiggleAmount = 2, DateTimeOffset? settlementDateStart = null, DateTimeOffset? settlementDateEnd = null )
+	{
+		using var db = Conn.Create();
+
+		try
+		{
+			List<DataParameter> prams = new List<DataParameter>();
+			prams.Add( new DataParameter( "dtStart", settlementDateStart.IsDateTimeValid() ? settlementDateStart.Value.Date : null ) { DataType = DataType.Date } );
+			prams.Add( new DataParameter( "dtEnd", settlementDateEnd.IsDateTimeValid() ? settlementDateStart.Value.Date : null ) { DataType = DataType.Date } );
+			prams.Add( new DataParameter( "WiggleAmount", WiggleAmount ) { DataType = DataType.Int32 } );
+
+			var rowsUpdated = await db.ExecuteProcAsync
+			(
+				"Reconciliation_MatchWithWiggleRoom",
+				prams.ToArray()
+			);
+
+			return rowsUpdated;
+		}
+		catch ( Exception exc )
+		{
+			exc.AddParam( "Sproc", "Reconciliation_MatchWithWiggleRoom" );
+			exc.AddParam( nameof( settlementDateStart ), $"{settlementDateStart}" );    // For non-trivial calls I often add the parameters on the call upward to the exception
+			exc.AddParam( nameof( settlementDateEnd ), $"{settlementDateEnd}" );
+			throw;
+		}
+	}
+
+	public async Task<int> Reconciliation_MatchingSplit( DateTimeOffset? settlementDateStart = null, DateTimeOffset? settlementDateEnd = null )
+	{
+		using var db = Conn.Create();
+
+		try
+		{
+			List<DataParameter> prams = new List<DataParameter>();
+			prams.Add( new DataParameter( "dtStart", settlementDateStart.IsDateTimeValid() ? settlementDateStart.Value.Date : null ) { DataType = DataType.Date } );
+			prams.Add( new DataParameter( "dtEnd", settlementDateEnd.IsDateTimeValid() ? settlementDateStart.Value.Date : null ) { DataType = DataType.Date } );
+
+			var rowsUpdated = await db.ExecuteProcAsync
+			(
+				"Reconciliation_MatchSplitSettlement",
+				prams.ToArray()
+			);
+
+			return rowsUpdated;
+		}
+		catch ( Exception exc )
+		{
+			exc.AddParam( "Sproc", "Reconciliation_MatchSplitSettlement" );
+			exc.AddParam( nameof( settlementDateStart ), $"{settlementDateStart}" );    // For non-trivial calls I often add the parameters on the call upward to the exception
+			exc.AddParam( nameof( settlementDateEnd ), $"{settlementDateEnd}" );
+			throw;
+		}
 	}
 
 	public void Save( TransactionLedger tran )
@@ -203,21 +298,38 @@ public class FileOperator( IConnectionFactory Conn, ILogger L ) : IFileOperation
 			.UpdateAsync();
 	}
 
-
-#if DEBUG
-	// DELETE ALL THE DATA
-	// I would also wrap this in a build param to make it impossible in MINT/Sandbox/Staging/QA/Prod .. IE, check the environment as well and remove from usage.
-	// Or put it into the Test project only
-
-	public async Task ClearDatabase()
+	public async Task<TransactionLedger[]> LoadTransactionBySettlementId( Guid SettlementId )
 	{
+		ZAssert.True( SettlementId.IsValid(), "LoadTransactionBySettlementId by Id has an invalid SettlementId" );
+
 		using var db = Conn.Create();
 
-		await db.GetTable<SettlementEntry>().DeleteAsync();
-		await db.GetTable<TransactionLedger>().DeleteAsync();
+		SettlementEntry? settleRet = await db.GetTable<SettlementEntry>()
+			.Where( x => x.Id == SettlementId )
+			.FirstOrDefaultAsync();
 
-		await db.GetTable<FileImport>().DeleteAsync();
-		
+		ZAssert.True( settleRet != null, "Settlement Entry could no be loaded" );
+
+		TransactionLedger[] trans = await db.GetTable<TransactionLedger>()
+			.Where( x => x.Id == settleRet.TransactionLedgerId )
+			.ToArrayAsync();
+
+		return trans;
 	}
-#endif
+
+	public async Task<SettlementEntry> LoadSettlement( Guid SettlementId )
+	{
+		ZAssert.True( SettlementId.IsValid(), "Repository Load Settlement by Id has an invalid SettlementId" );
+
+		using var db = Conn.Create();
+
+		SettlementEntry? settleRet = await db.GetTable<SettlementEntry>()
+			.Where( x => x.Id == SettlementId )
+			.FirstOrDefaultAsync();
+
+		return settleRet;
+	}
+
+
+
 }

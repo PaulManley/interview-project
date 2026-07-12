@@ -18,13 +18,15 @@ public interface IFileOperationRepository
 	Task<SettlementEntry[]> LoadSettlementEntries( Guid? fileId = null, string path = null, string fileName = null, DateTimeOffset? settlementDateStart = null, DateTimeOffset? settlementDateEnd = null );
 
 	Task<TransactionLedger> LoadTransaction( Guid TransactionLedgerId );
+	Task<TransactionLedger[]> LoadTransactionBySettlementId( Guid SettlementId );
+	Task<SettlementEntry> LoadSettlement( Guid SettlementId );
 
-	Task<(SettlementEntry[] Settlements, TransactionLedger[] Transactions)> LoadUnreconciled(  );
+	Task<int> Reconciliation_MatchingWithWiggle( int WiggleAmount = 2, DateTimeOffset? settlementDateStart = null, DateTimeOffset? settlementDateEnd = null );
+	Task<int> Reconciliation_MainMatching( DateTimeOffset? settlementDateStart = null, DateTimeOffset? settlementDateEnd = null );
+	Task<int> Reconciliation_MatchingSplit( DateTimeOffset? settlementDateStart = null, DateTimeOffset? settlementDateEnd = null );
+
+	Task<(SettlementEntry[] Settlements, TransactionLedger[] Transactions)> LoadUnreconciled( DateTimeOffset? settlementDateStart = null, DateTimeOffset? settlementDateEnd = null );
 	Task UpdateSettlement( Guid SettlementEntryId, Guid TransactionLedgerId );
 	Task Notify( Guid SettlementEntryId, string Msg );
 
-
-#if DEBUG
-	Task ClearDatabase();
-#endif
 }

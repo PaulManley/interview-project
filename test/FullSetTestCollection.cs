@@ -16,7 +16,7 @@ public sealed class TestStartupFixture : IAsyncLifetime
 
 	public async ValueTask InitializeAsync()
 	{
-		await _mySqlContainerSetup.InitializeAsync();
+		await _mySqlContainerSetup.InitializeAsync( "mysql-interview-test" );
 		Console.WriteLine( "TestStartupFixture::MySql container started" );
 	}
 

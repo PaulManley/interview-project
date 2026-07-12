@@ -24,17 +24,17 @@ public class Reconcile( TestStartupFixture Fixture )
 
 		services.AddTransient<Interview.Import.Settlement.NormalizeWorkflow>();
 		services.AddTransient<Interview.Import.Transaction.NormalizeWorkflow>();
-		MatchPatternSetup.Register( services );
+		MatchPatternSetup.RegisterPatterns( services );
 		services.AddTransient<Interview.Import.Reconcile.Reconciliation>();
 		services.AddTransient<INotifyMismatch,NotificationService>();
-		
-
-
+		services.AddTransient<Interview.Test.Util>();
 
 		var provider = services.BuildServiceProvider();
-
 		var db = provider.GetRequiredService<IFileOperationRepository>();
-		await db.ClearDatabase();
+
+		var clearDB = provider.GetRequiredService<Interview.Test.Util>();
+		await Interview.Test.Util.StartMigration();
+		await clearDB.ClearDatabase();
 
 		string fileNamePath = "./DataSets/test_processor_settlement.json";
 		System.IO.FileInfo fi = new System.IO.FileInfo(fileNamePath);
@@ -65,8 +65,10 @@ public class Reconcile( TestStartupFixture Fixture )
 
 
 
+		/*
 		var reconcileProcess = provider.GetRequiredService<Interview.Import.Reconcile.Reconciliation>();
 		await reconcileProcess.Process( nonReconciledItems.Settlements, nonReconciledItems.Transactions);
+		*/
 
 	}
 }

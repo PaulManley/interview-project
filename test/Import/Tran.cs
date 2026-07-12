@@ -95,13 +95,15 @@ public class Tran : IDisposable
 		services.AddSingleton( provider => provider.GetRequiredService<ILoggerFactory>().CreateLogger( nameof( DBMigrator.GlobalSetupMySQL ) ) );
 		services.AddTransient<DBMigrator.GlobalSetupMySQL>();
 		services.AddTransient<Interview.Common.IFileOperationRepository,FileOperator>();
-		
-		
+		services.AddTransient<Interview.Test.Util>();
+
 		services.AddTransient<NormalizeWorkflow>();
 		var provider = services.BuildServiceProvider();
 
 		var db = provider.GetRequiredService<IFileOperationRepository>();
-		await db.ClearDatabase();
+		var clearDB = provider.GetRequiredService<Interview.Test.Util>();
+		await Interview.Test.Util.StartMigration();
+		await clearDB.ClearDatabase();
 
 
 		string fileNamePath = "./DataSets/goofy1_internal_transactions.csv";
@@ -136,13 +138,15 @@ public class Tran : IDisposable
 		services.AddSingleton( provider => provider.GetRequiredService<ILoggerFactory>().CreateLogger( nameof( DBMigrator.GlobalSetupMySQL ) ) );
 		services.AddTransient<DBMigrator.GlobalSetupMySQL>();
 		services.AddTransient<Interview.Common.IFileOperationRepository, FileOperator>();
-
+		services.AddTransient<Interview.Test.Util>();
 
 		services.AddTransient<NormalizeWorkflow>();
 		var provider = services.BuildServiceProvider();
 
 		var db = provider.GetRequiredService<IFileOperationRepository>();
-		await db.ClearDatabase();
+		var clearDB = provider.GetRequiredService<Interview.Test.Util>();
+		await Interview.Test.Util.StartMigration();
+		await clearDB.ClearDatabase();
 
 
 		string fileNamePath = "./DataSets/test_internal_transactions.csv";
@@ -177,13 +181,15 @@ public class Tran : IDisposable
 		services.AddSingleton( provider => provider.GetRequiredService<ILoggerFactory>().CreateLogger( nameof( DBMigrator.GlobalSetupMySQL ) ) );
 		services.AddTransient<DBMigrator.GlobalSetupMySQL>();
 		services.AddTransient<Interview.Common.IFileOperationRepository, FileOperator>();
-
+		services.AddTransient<Interview.Test.Util>();
 
 		services.AddTransient<NormalizeWorkflow>();
 		var provider = services.BuildServiceProvider();
 
 		var db = provider.GetRequiredService<IFileOperationRepository>();
-		await db.ClearDatabase();
+		var clearDB = provider.GetRequiredService<Interview.Test.Util>();
+		await Interview.Test.Util.StartMigration();
+		await clearDB.ClearDatabase();
 
 
 		string fileNamePath = "./DataSets/official_internal_transactions.csv";

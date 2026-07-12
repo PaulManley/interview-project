@@ -1,5 +1,4 @@
 ﻿using Interview.Common;
-using Interview.Repository.POCO;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
@@ -12,8 +11,10 @@ namespace Interview.Import.Reconcile;
  * I would probably make a matching pattern that pre-processed the easy ones of these directly in SQL
 */
 
-public class Reconciliation( IMatchPatternSettlement[] PatternsSettlement, IFileOperationRepository pRepos)
+public class Reconciliation(IMatchDataSettlement[] PreProcessingMatching,  IMatchPatternSettlement[] PatternsSettlement, IMatchDataSettlementPostProcessing[] PostProcessingMatching, IFileOperationRepository pRepos)
 {
+	// Change into a step runner
+
 	/*
 	 * Process:
 	 *	Grab all the un-reconciled items
@@ -34,7 +35,35 @@ public class Reconciliation( IMatchPatternSettlement[] PatternsSettlement, IFile
 	 *	Exclude from next loop
 	 */
 
-	public async Task Process( P.SettlementEntry[] Settlements, P.TransactionLedger[] Transactions)
+	public async Task Process(DateTimeOffset? dtStartSettlementEntry, DateTimeOffset? dtEndSettlementEntry)
+	{
+		await PreProcessing( dtStartSettlementEntry, dtEndSettlementEntry );
+
+		var unreconciled = await pRepos.LoadUnreconciled( dtStartSettlementEntry, dtEndSettlementEntry );
+		await Processing_SlowNSquared( unreconciled .Settlements, unreconciled .Transactions);
+
+		await PostProcessing( dtStartSettlementEntry, dtEndSettlementEntry );
+	}
+
+	protected async Task PreProcessing( DateTimeOffset? dtStartSettlementEntry, DateTimeOffset? dtEndSettlementEntry )
+	{
+		var processList = PreProcessingMatching.ToSafeArray().OrderBy( x => x.Sequence ).ToSafeArray();
+		foreach (var pPreProcessing in processList )
+		{
+			await pPreProcessing.DataMatch( dtStartSettlementEntry , dtEndSettlementEntry );
+		}
+	}
+
+	protected async Task PostProcessing( DateTimeOffset? dtStartSettlementEntry, DateTimeOffset? dtEndSettlementEntry )
+	{
+		var processList = PostProcessingMatching.ToSafeArray().OrderBy( x => x.Sequence ).ToSafeArray();
+		foreach ( var pPostProcessing in processList )
+		{
+			await pPostProcessing.DataMatch( dtStartSettlementEntry, dtEndSettlementEntry );
+		}
+	}
+
+	protected async Task Processing_SlowNSquared( P.SettlementEntry[] Settlements, P.TransactionLedger[] Transactions)
 	{
 		PatternsSettlement = PatternsSettlement.ToSafeArray().OrderBy( x => x.Sequence ).ToSafeArray();
 		var trans = Transactions.ToSafeArray();
@@ -67,341 +96,14 @@ public class Reconciliation( IMatchPatternSettlement[] PatternsSettlement, IFile
 }
 
 
-public interface IMatchPatternSettlement
+
+
+
+public static class MatchPatternSetup
 {
-	Guid? FindMatch( P.SettlementEntry settlement, P.TransactionLedger[] transactions );
-	int Sequence { get; }
-}
-
-public class Pattern_NoOp : IMatchPatternSettlement
-{
-	public int Sequence => 10;
-
-	public Guid? FindMatch( SettlementEntry settlement, TransactionLedger[] transactions )
+	public static IServiceCollection RegisterPatterns( this IServiceCollection services )
 	{
-		return null;
-	}
-}
-
-public class Pattern_Full( ILogger L ) : IMatchPatternSettlement
-{
-	public int Sequence => 10;
-
-	public Guid? FindMatch( SettlementEntry settlement, TransactionLedger[] transactions )
-	{
-		var matches = transactions
-			.Where( x => x.MerchantId.IsEqual( settlement.MerchantId ) )
-			.Where( x => x.CardType.IsEqual( settlement.CardType ) )
-			.Where( x => x.CardLast4.IsEqual( settlement.CardLast4 ) )
-			.Where( x => settlement.SettlementDate.IsDateTimeValid() )
-			.Where( x => x.CapturedAt.IsDateTimeValid() )
-			.Where( x => settlement.SettlementDate >= x.CapturedAt )
-			.Where( x => settlement.SettlementDate.Value.Subtract(x.CapturedAt.Value).TotalDays < 4  )
-			.Where( x => x.GrossAmount == settlement.ExpectedGrossOriginalCents )
-			.Where( x => x.ExpectedInterchangeCents == settlement.InterchangeFeeCents )
-			.Where( x => x.ExpectedSettledCents == settlement.SettledAmountCents )
-			.Where( x => x.ExpectedProcessorFeeCents == settlement.ProcessorFeeCents )
-			.Where ( x => x.MerchantReferenceNo.IsEqual(settlement.MerchantRef))
-			.ToSafeArray();
-
-		foreach(var m in matches)
-		{
-			L.LogDebug( "Good Match:  {RecordNumberT}|{MerchantReferenceNo} ==> {RecordNumberS}|{NetworkRef}",m.RecordNumber, m.MerchantReferenceNo, settlement.RecordNumber, settlement.NetworkRef );
-		}
-
-		return matches.FirstOrDefault()?.Id;
-	}
-}
-
-public class Pattern_FullButLate( ILogger L ) : IMatchPatternSettlement
-{
-	public int Sequence => 10;
-
-	public Guid? FindMatch( SettlementEntry settlement, TransactionLedger[] transactions )
-	{
-		var matches = transactions
-			.Where( x => x.MerchantId.IsEqual( settlement.MerchantId ) )
-			.Where( x => x.CardType.IsEqual( settlement.CardType ) )
-			.Where( x => x.CardLast4.IsEqual( settlement.CardLast4 ) )
-			.Where( x => settlement.SettlementDate.IsDateTimeValid() )
-			.Where( x => x.CapturedAt.IsDateTimeValid() )
-			.Where( x => settlement.SettlementDate >= x.CapturedAt )
-			.Where( x => settlement.SettlementDate.Value.Subtract(x.CapturedAt.Value).TotalDays > 3  )
-			.Where( x => x.GrossAmount == settlement.ExpectedGrossOriginalCents )
-			.Where( x => x.ExpectedInterchangeCents == settlement.InterchangeFeeCents )
-			.Where( x => x.ExpectedSettledCents == settlement.SettledAmountCents )
-			.Where( x => x.ExpectedProcessorFeeCents == settlement.ProcessorFeeCents )
-			.Where ( x => x.MerchantReferenceNo.IsEqual(settlement.MerchantRef))
-			.ToSafeArray();
-
-		foreach ( var m in matches )
-		{
-			L.LogDebug( "Good Match:  {RecordNumberT}|{MerchantReferenceNo} ==> {RecordNumberS}|{NetworkRef}", m.RecordNumber, m.MerchantReferenceNo, settlement.RecordNumber, settlement.NetworkRef );
-		}
-
-		return matches.FirstOrDefault()?.Id;
-	}
-}
-
-public class Pattern_1PennyOff( INotifyMismatch pNotify) : IMatchPatternSettlement
-{
-	public int Sequence => 50;
-
-	public Guid? FindMatch( SettlementEntry settlement, TransactionLedger[] transactions )
-	{
-		if ( settlement.TransactionLedgerId.IsValid() )
-			return null;
-
-
-		var matches = transactions
-			.Where( x => x.MerchantId.IsEqual( settlement.MerchantId ) )
-			.Where( x => x.CardType.IsEqual( settlement.CardType ) )
-			.Where( x => x.CardLast4.IsEqual( settlement.CardLast4 ) )
-			.Where( x => settlement.SettlementDate >= x.CapturedAt )
-			.Where( x => DiffWithWiggle
-			(
-					(x.GrossAmount??0 + x.ExpectedInterchangeCents??0 + x.ExpectedSettledCents??0 + x.ExpectedProcessorFeeCents??0) ,
-					( settlement.ExpectedGrossOriginalCents??0 + settlement.InterchangeFeeCents??0 + settlement.SettledAmountCents??0 + settlement.ProcessorFeeCents??0) )
-			)
-			.Where ( x => x.MerchantReferenceNo.IsEqual(settlement.MerchantRef))
-			.ToSafeArray();
-
-
-
-		foreach ( var m in matches )
-		{
-			pNotify.Notify( settlement, m, "Check Within a Penny" );
-		}
-
-		return matches.FirstOrDefault()?.Id;
-	}
-
-	public bool DiffWithWiggle( long item1, long item2, int wiggle = 1 )
-	{
-		long diff = item1 - item2;
-		if ( diff <= wiggle )
-			return true;
-		return false;
-	}
-}
-
-public class Pattern_2PennyOff( INotifyMismatch pNotify ) : IMatchPatternSettlement
-{
-	public int Sequence => 100;
-
-	public Guid? FindMatch( SettlementEntry settlement, TransactionLedger[] transactions )
-	{
-		if ( settlement.TransactionLedgerId.IsValid() )
-			return null;
-
-
-		var matches = transactions
-			.Where( x => x.MerchantId.IsEqual( settlement.MerchantId ) )
-			.Where( x => x.CardType.IsEqual( settlement.CardType ) )
-			.Where( x => x.CardLast4.IsEqual( settlement.CardLast4 ) )
-			.Where( x => settlement.SettlementDate >= x.CapturedAt )
-			.Where( x => DiffWithWiggle
-			(
-					(x.GrossAmount??0 + x.ExpectedInterchangeCents??0 + x.ExpectedSettledCents??0 + x.ExpectedProcessorFeeCents??0) ,
-					( settlement.ExpectedGrossOriginalCents??0 + settlement.InterchangeFeeCents??0 + settlement.SettledAmountCents??0 + settlement.ProcessorFeeCents??0),
-					2)
-			)
-			.Where ( x => x.MerchantReferenceNo.IsEqual(settlement.MerchantRef))
-			.ToSafeArray();
-
-
-
-		foreach ( var m in matches )
-		{
-			pNotify.Notify( settlement, m, "Check Within 2 Pennies" );
-		}
-
-		return matches.FirstOrDefault()?.Id;
-	}
-
-	public bool DiffWithWiggle( long item1, long item2, int wiggle = 1 )
-	{
-		long diff = item1 - item2;
-		if ( diff <= wiggle )
-			return true;
-		return false;
-	}
-}
-
-public class Pattern_3PennyOff( INotifyMismatch pNotify ) : IMatchPatternSettlement
-{
-	public int Sequence => 200;
-
-	public Guid? FindMatch( SettlementEntry settlement, TransactionLedger[] transactions )
-	{
-		if ( settlement.TransactionLedgerId.IsValid() )
-			return null;
-
-
-		var matches = transactions
-			.Where( x => x.MerchantId.IsEqual( settlement.MerchantId ) )
-			.Where( x => x.CardType.IsEqual( settlement.CardType ) )
-			.Where( x => x.CardLast4.IsEqual( settlement.CardLast4 ) )
-			.Where( x => settlement.SettlementDate >= x.CapturedAt )
-			.Where( x => DiffWithWiggle
-			(
-					(x.GrossAmount??0 + x.ExpectedInterchangeCents??0 + x.ExpectedSettledCents??0 + x.ExpectedProcessorFeeCents??0) ,
-					( settlement.ExpectedGrossOriginalCents??0 + settlement.InterchangeFeeCents??0 + settlement.SettledAmountCents??0 + settlement.ProcessorFeeCents??0),
-					3)
-			)
-			.Where ( x => x.MerchantReferenceNo.IsEqual(settlement.MerchantRef))
-			.ToSafeArray();
-
-
-
-		foreach ( var m in matches )
-		{
-			pNotify.Notify( settlement, m, "Check Within 3 Pennies" );
-		}
-
-		return matches.FirstOrDefault()?.Id;
-	}
-
-	public bool DiffWithWiggle( long item1, long item2, int wiggle = 1 )
-	{
-		long diff = item1 - item2;
-		if ( diff <= wiggle )
-			return true;
-		return false;
-	}
-}
-
-public class Pattern_FarOff1( INotifyMismatch pNotify ) : IMatchPatternSettlement
-{
-	public int Sequence => 300;
-
-	public Guid? FindMatch( SettlementEntry settlement, TransactionLedger[] transactions )
-	{
-		if ( settlement.TransactionLedgerId.IsValid() )
-			return null;
-
-
-		var matches = transactions
-			.Where( x => x.MerchantId.IsEqual( settlement.MerchantId ) )
-			.Where( x => x.CardType.IsEqual( settlement.CardType ) )
-			.Where( x => x.CardLast4.IsEqual( settlement.CardLast4 ) )
-			.Where( x => settlement.SettlementDate >= x.CapturedAt )
-			.Where( x => DiffWithWiggle
-			(
-					(x.GrossAmount??0 + x.ExpectedInterchangeCents??0 + x.ExpectedSettledCents??0 + x.ExpectedProcessorFeeCents??0) ,
-					( settlement.ExpectedGrossOriginalCents??0 + settlement.InterchangeFeeCents??0 + settlement.SettledAmountCents??0 + settlement.ProcessorFeeCents??0),
-					100000)
-			)
-			.Where ( x => x.MerchantReferenceNo.IsEqual(settlement.MerchantRef))
-			.ToSafeArray();
-
-
-
-		foreach ( var m in matches )
-		{
-			pNotify.Notify( settlement, m, "Amount Way off 1" );
-		}
-
-		return matches.FirstOrDefault()?.Id;
-	}
-
-	public bool DiffWithWiggle( long item1, long item2, int wiggle = 1 )
-	{
-		long diff = item1 - item2;
-		if ( diff <= wiggle )
-			return true;
-		return false;
-	}
-}
-
-public class Pattern_FarOff2( INotifyMismatch pNotify ) : IMatchPatternSettlement
-{
-	public int Sequence => 350;
-
-	public Guid? FindMatch( SettlementEntry settlement, TransactionLedger[] transactions )
-	{
-		if ( settlement.TransactionLedgerId.IsValid() )
-			return null;
-
-
-		var matches = transactions
-			.Where( x => x.MerchantId.IsEqual( settlement.MerchantId ) )
-			.Where( x => x.CardType.IsEqual( settlement.CardType ) )
-			.Where( x => x.CardLast4.IsEqual( settlement.CardLast4 ) )
-			.Where( x => settlement.SettlementDate >= x.CapturedAt )
-			.Where( x => DiffWithWiggle
-			(
-					(x.GrossAmount??0 + x.ExpectedInterchangeCents??0 + x.ExpectedSettledCents??0 + x.ExpectedProcessorFeeCents??0) ,
-					( settlement.ExpectedGrossOriginalCents??0 + settlement.InterchangeFeeCents??0 + settlement.SettledAmountCents??0 + settlement.ProcessorFeeCents??0),
-					1000000)
-			)
-			.Where ( x => x.MerchantReferenceNo.IsEqual(settlement.MerchantRef))
-			.ToSafeArray();
-
-
-
-		foreach ( var m in matches )
-		{
-			pNotify.Notify( settlement, m, "Amount Way off 2" );
-		}
-
-		return matches.FirstOrDefault()?.Id;
-	}
-
-	public bool DiffWithWiggle( long item1, long item2, int wiggle = 1 )
-	{
-		long diff = item1 - item2;
-		if ( diff <= wiggle )
-			return true;
-		return false;
-	}
-}
-
-public class Pattern_Off( INotifyMismatch pNotify ) : IMatchPatternSettlement
-{
-	public int Sequence => 400;
-
-	public Guid? FindMatch( SettlementEntry settlement, TransactionLedger[] transactions )
-	{
-		if ( settlement.TransactionLedgerId.IsValid() )
-			return null;
-
-
-		var matches = transactions
-			.Where( x => x.MerchantId.IsEqual( settlement.MerchantId ) )
-			.Where( x => x.CardType.IsEqual( settlement.CardType ) )
-			.Where( x => x.CardLast4.IsEqual( settlement.CardLast4 ) )
-			.Where( x => settlement.SettlementDate >= x.CapturedAt )
-			.Where( x => 
-				( x.GrossAmount??0 + x.ExpectedInterchangeCents??0 + x.ExpectedSettledCents??0 + x.ExpectedProcessorFeeCents??0) !=
-				( settlement.ExpectedGrossOriginalCents??0 + settlement.InterchangeFeeCents??0 + settlement.SettledAmountCents??0 + settlement.ProcessorFeeCents??0) )
-			.Where ( x => x.MerchantReferenceNo.IsEqual(settlement.MerchantRef))
-			.ToSafeArray();
-
-
-
-		foreach ( var m in matches )
-		{
-			pNotify.Notify( settlement, m, "Amount Wrong" );
-		}
-
-		return matches.FirstOrDefault()?.Id;
-	}
-
-	public bool DiffWithWiggle( long item1, long item2, int wiggle = 1 )
-	{
-		long diff = item1 - item2;
-		if ( diff <= wiggle )
-			return true;
-		return false;
-	}
-}
-
-
-public class MatchPatternSetup
-{
-	public static void Register( IServiceCollection services )
-	{
+		// Register all the processing patterns
 
 		services.Scan( scan => scan
 			.FromAssemblyOf<IMatchPatternSettlement>()
@@ -409,8 +111,27 @@ public class MatchPatternSetup
 			.AsImplementedInterfaces()
 			.WithTransientLifetime() );
 
-		// Register the array of all IMatchPatternSettlement implementations
 		services.AddTransient<IMatchPatternSettlement[]>( provider => provider.GetServices<IMatchPatternSettlement>().ToArray() );
+
+		services.Scan( scan => scan
+			.FromAssemblyOf<IMatchDataSettlement>()
+			.AddClasses( classes => classes.AssignableTo<IMatchPatternSettlement>() )
+			.AsImplementedInterfaces()
+			.WithTransientLifetime() );
+
+		services.AddTransient<IMatchDataSettlement[]>( provider => provider.GetServices<IMatchDataSettlement>().ToArray() );
+
+
+		services.Scan( scan => scan
+			.FromAssemblyOf<IMatchDataSettlementPostProcessing>()
+			.AddClasses( classes => classes.AssignableTo<IMatchPatternSettlement>() )
+			.AsImplementedInterfaces()
+			.WithTransientLifetime() );
+
+		services.AddTransient<IMatchDataSettlementPostProcessing[]>( provider => provider.GetServices<IMatchDataSettlementPostProcessing>().ToArray() );
+
+		return services;
 
 	}
 }
+

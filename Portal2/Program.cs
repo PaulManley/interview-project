@@ -2,6 +2,8 @@ using Interview.Common;
 using Interview.Common.Service;
 using Interview.Import.Reconcile;
 using Interview.Repository;
+using Interview.DBMigrator;
+using Interview.Import;
 
 namespace Portal2;
 
@@ -10,24 +12,21 @@ public class Program
 	public static async Task Main( string[] args )
 	{
 		await using var mySqlContainerSetup = new MySqlContainerSetup();
-		await mySqlContainerSetup.InitializeAsync();
+		await mySqlContainerSetup.InitializeAsync("mysql-interview-portal");
 
 		var builder = WebApplication.CreateBuilder(args);
 
 		var services = builder.Services;
 
-		// There are nicer ways to do this.  Usually I create a "Setup" function in each project that takes in the ServiceCollection and it handles this more internally.
 		services.AddLogging( x => x.AddConsole() );
-		services.AddSingleton<IConnectionFactory>( new MySqlConnectionFactory( Interview.Common.Config.ConnectionString ) );
-		services.AddSingleton( provider => provider.GetRequiredService<ILoggerFactory>().CreateLogger( nameof( Interview.DBMigrator.GlobalSetupMySQL ) ) );
-		services.AddTransient<Interview.DBMigrator.GlobalSetupMySQL>();
-		services.AddTransient<Interview.Common.IFileOperationRepository, FileOperator>();
 
-		services.AddTransient<Interview.Import.Settlement.NormalizeWorkflow>();
-		services.AddTransient<Interview.Import.Transaction.NormalizeWorkflow>();
-		MatchPatternSetup.Register( services );
-		services.AddTransient<Interview.Import.Reconcile.Reconciliation>();
-		services.AddTransient<INotifyMismatch, NotificationService>();
+		services.SetupRepository()
+			.RegisterDBMigrator()
+			.RegisterCommon()
+			.RegisterPatterns()
+			.RegisterImport();
+
+
 
 		builder.Services.AddRazorPages();
 

@@ -11,6 +11,10 @@
 		<PackageReference Include="coverlet.collector" />
 		<PackageReference Include="Ductus.FluentDocker" />
 		<PackageReference Include="Ductus.FluentDocker.XUnit" />
+		<PackageReference Include="linq2db" />
+		<PackageReference Include="linq2db.MySql" />
+		<PackageReference Include="linq2db.SQLite" />
+		<PackageReference Include="linq2db.SqlServer" />
 		<PackageReference Include="Microsoft.NET.Test.Sdk" />
 		<PackageReference Include="Testcontainers" />
 		<PackageReference Include="Testcontainers.MySql" />
