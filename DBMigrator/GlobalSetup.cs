@@ -85,7 +85,7 @@ public class GlobalSetupMySQL(ILogger L, IConnectionFactory ConnFactory )
 		try
 		{
 			runner.MigrateUp();
-			L.LogInformation( $"Creating AIv2 Info -- Completed" );
+			L.LogInformation( $"Creating Interview database Info -- Completed" );
 		}
 		catch ( MissingMigrationsException exc )
 		{
