@@ -1,0 +1,82 @@
+@page
+@model FileListModel
+@{
+	ViewData["Title"] = "File List";
+}
+
+<div class="container-fluid mt-5">
+	<div class="row mb-4">
+		<div class="col-md-6">
+			<h1>File List</h1>
+		</div>
+	</div>
+
+	@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+	{
+		<div class="alert alert-danger alert-dismissible fade show" role="alert">
+			@Model.ErrorMessage
+			<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+		</div>
+	}
+
+	<form method="get" class="row g-3 align-items-end mb-4">
+		<div class="col-md-3">
+			<label asp-for="CreatedStart" class="form-label">Start</label>
+			<input asp-for="CreatedStart" type="date" class="form-control" />
+		</div>
+		<div class="col-md-3">
+			<label asp-for="CreatedEnd" class="form-label">End</label>
+			<input asp-for="CreatedEnd" type="date" class="form-control" />
+		</div>
+		<div class="col-md-3">
+			<button type="submit" class="btn btn-primary">Filter</button>
+			<a href="@Url.Page("FileList")" class="btn btn-secondary ms-2">Clear</a>
+		</div>
+	</form>
+
+	@if (Model.ViewModel.Files == null || Model.ViewModel.Files.Count == 0)
+	{
+		<div class="alert alert-info">No files found.</div>
+	}
+	else
+	{
+		<div class="table-responsive">
+			<table class="table table-striped table-hover align-middle">
+				<thead class="table-dark">
+					<tr>
+						<th>FileName</th>
+						<th>Record Count</th>
+						<th>Created</th>
+						<th>View File Link</th>
+					</tr>
+				</thead>
+				<tbody>
+					@foreach (var file in Model.ViewModel.Files)
+					{
+						<tr>
+							<td>@file.FileName</td>
+							<td>@file.RecordCount</td>
+							<td>@file.Created.ToString("yyyy-MM-dd HH:mm:ss")</td>
+							<td>
+								@if (!string.IsNullOrEmpty(file.ViewPage))
+								{
+									<a class="btn btn-sm btn-outline-primary" href="@Url.Page(file.ViewPage, new { FileId = file.FileId })">View</a>
+								}
+							</td>
+						</tr>
+
+						@foreach (var status in file.Statuses)
+						{
+							<tr>
+								<td class="ps-5 text-muted">Status</td>
+								<td class="ps-5">@status.Status</td>
+								<td class="ps-5 text-muted">Status Count</td>
+								<td>@status.StatusCount</td>
+							</tr>
+						}
+					}
+				</tbody>
+			</table>
+		</div>
+	}
+</div>

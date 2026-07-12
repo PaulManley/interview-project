@@ -54,7 +54,9 @@
 					@foreach (var ledger in Model.TransactionLedgers)
 					{
 						<tr>
-							<td>@ledger.RefTranId</td>
+							<td>
+								<a href="@Url.Page("TransactionLedgerDetail", new { transactionLedgerId = ledger.Id })">@ledger.RefTranId</a>
+							</td>
 							<td>@ledger.MerchantId</td>
 							<td>@ledger.MerchantReferenceNo</td>
 							<td>@ledger.CardType</td>

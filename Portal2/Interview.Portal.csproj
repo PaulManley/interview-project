@@ -15,12 +15,17 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<PackageReference Include="Markdig" />
 		<PackageReference Include="Testcontainers" />
 		<PackageReference Include="Testcontainers.MySql" />
 	</ItemGroup>
 
 	<ItemGroup>
 		<Compile Include="..\GlobalUsing.cs" Link="GlobalUsing.cs" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <EmbeddedResource Include="..\ReadMe.md" Link="ReadMe.md" />
 	</ItemGroup>
 
 	<ItemGroup>

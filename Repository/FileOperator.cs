@@ -1,5 +1,6 @@
 ﻿using Interview.Common;
 using Interview.Repository.POCO;
+using D = Interview.Common.DTO;
 using LinqToDB;
 using LinqToDB.Async;
 using LinqToDB.Data;
@@ -44,6 +45,66 @@ public class FileOperator( IConnectionFactory Conn, ILogger L ) : IFileOperation
 		}
 
 		db.Update( fileImport );
+	}
+
+	public async Task<FileImport[]> Load(DateTimeOffset? createdStart, DateTimeOffset? createdEnd)
+	{
+		using var db = Conn.Create();
+
+		IQueryable<FileImport> query = db.GetTable<FileImport>();
+
+		if ( createdStart.IsDateTimeValid() )
+		{
+			query = query.Where( x => x.Created >= createdStart );
+		}
+
+		if ( createdEnd.IsDateTimeValid() )
+		{
+			query = query.Where( x => x.Created <= createdEnd );
+		}
+
+		var r = await query.OrderByDescending( x => x.Created ).Take( 100 ).ToArrayAsync();
+		return r;
+
+	}
+
+	public async Task<D.FileListItem[]> LoadFileSummary( DateTimeOffset? createdStart, DateTimeOffset? createdEnd )
+	{
+		using var db = Conn.Create();
+
+		string query =
+"""
+SELECT G.Id FileId, G.Status, G.StatusCount, FF.FileName, FF.RecordCount, FF.Created, G.FileType
+	FROM 
+	(
+		SELECT 	
+				F.Id,S.Status, Count(*) StatusCount, 'SettlementEntry' FileType
+			FROM FileImport F
+				LEFT OUTER JOIN settlemententry S ON ( S.FileImportId = F.Id )
+			WHERE 1=1
+				AND S.Id IS NOT NULL
+			GROUP BY S.Status, F.Id, F.FileName, F.RecordCount, F.FileType
+		UNION ALL
+		SELECT 	
+				F.Id, T.Status, Count(*) StatusCount, 'TransactionLedger' FileType
+			FROM FileImport F
+				LEFT OUTER JOIN TransactionLedger T ON ( T.FileImportId = F.Id )
+			WHERE 1=1
+				AND T.Id IS NOT NULL
+			GROUP BY T.Status, F.Id, F.FileName, F.RecordCount, F.FileType
+	) AS G
+		INNER JOIN FileImport FF ON ( FF.Id = G.Id )
+	WHERE ( @createdStart IS NULL OR FF.Created >= @createdStart )
+		AND ( @createdEnd IS NULL OR FF.Created <= @createdEnd )
+	;
+""";
+		var fileInfos = await db.QueryAsync<D.FileListItem>(
+			query,
+			new DataParameter( "createdStart", createdStart ),
+			new DataParameter( "createdEnd", createdEnd ) );
+
+		return fileInfos.ToSafeArray();
+
 	}
 
 	public FileImport Load( string path, string name )
@@ -294,6 +355,64 @@ SELECT T.*
 		db.Update( tran );
 	}
 
+	public async Task ClearMatched( SettlementEntry[] settlementEntries )
+	{
+		ZAssert.True( settlementEntries != null, "settlementEntries is null" );
+
+		if ( settlementEntries.Length == 0 )
+		{
+			return;
+		}
+
+		List<Guid> settlementEntryIds = new List<Guid>();
+		List<Guid> transactionLedgerIds = new List<Guid>();
+
+		foreach ( var settlement in settlementEntries )
+		{
+			ZAssert.True( settlement.Id.IsValid(), "Settlement Entry Id is not valid", structuredObject: new { settlement.Id } );
+
+			if ( !settlementEntryIds.Contains( settlement.Id ) )
+			{
+				settlementEntryIds.Add( settlement.Id );
+			}
+
+			if ( settlement.TransactionLedgerId.HasValue && settlement.TransactionLedgerId.Value.IsValid() && !transactionLedgerIds.Contains( settlement.TransactionLedgerId.Value ) )
+			{
+				transactionLedgerIds.Add( settlement.TransactionLedgerId.Value );
+			}
+		}
+
+		using var db = Conn.Create();
+
+		int rowsAffectedS = await db.GetTable<SettlementEntry>()
+			.Where( x => settlementEntryIds.Contains( x.Id ) )
+			.Set( t => t.TransactionLedgerId, (Guid?)null )
+			.Set( t => t.Status, "Imported" )
+			.UpdateAsync();
+
+		int rowsAffectedT = 0;
+		if ( transactionLedgerIds.Count > 0 )
+		{
+			rowsAffectedT = await db.GetTable<TransactionLedger>()
+				.Where( x => transactionLedgerIds.Contains( x.Id ) )
+				.Set( t => t.Status, "Imported" )
+				.UpdateAsync();
+		}
+
+		ZAssert.True(
+			rowsAffectedS == settlementEntryIds.Count,
+			"Incorrect number of settlement rows updated",
+			structuredObject: new { rowsAffectedS, expected = settlementEntryIds.Count } );
+
+		if ( transactionLedgerIds.Count > 0 )
+		{
+			ZAssert.True(
+				rowsAffectedT == transactionLedgerIds.Count,
+				"Incorrect number of transaction rows updated",
+				structuredObject: new { rowsAffectedT, expected = transactionLedgerIds.Count } );
+		}
+	}
+
 	public async Task Notify( Guid SettlementEntryId, string Msg )
 	{
 		using var db = Conn.Create();
@@ -321,6 +440,19 @@ SELECT T.*
 			.ToArrayAsync();
 
 		return trans;
+	}
+
+	public async Task<SettlementEntry[]> LoadSettlementByTransactionLedgerId( Guid TransactionLedgerId )
+	{
+		ZAssert.True( TransactionLedgerId.IsValid(), "LoadSettlementByTransactionLedgerId has an invalid TransactionLedgerId" );
+
+		using var db = Conn.Create();
+
+		SettlementEntry[] settlements = await db.GetTable<SettlementEntry>()
+			.Where( x => x.TransactionLedgerId == TransactionLedgerId )
+			.ToArrayAsync();
+
+		return settlements.ToSafeArray();
 	}
 
 	public async Task<SettlementEntry> LoadSettlement( Guid SettlementId )

@@ -2,7 +2,7 @@
 
 Hello, thanks for checking this out.
 
-Short Video:  https://www.loom.com/share/e30fec0761ff46cc9351b1726b9d1bdc
+Short Video:  
 
 ## How to Run
 These will all start-up docker to run mysql.  There is a persisted volume, but the unit tests will delete all the data from most tests.

@@ -1,0 +1,29 @@
+@model Portal2.Pages.ForceMatchControlViewModel
+
+<div class="card mb-4">
+	<div class="card-header bg-secondary text-white">
+		<h5 class="mb-0">@Model.Title</h5>
+	</div>
+	<div class="card-body">
+		@if (Model.Options == null || Model.Options.Length == 0)
+		{
+			<p class="text-muted mb-0">@Model.EmptyMessage</p>
+		}
+		else
+		{
+			<form method="post" asp-page-handler="@Model.Handler">
+				<input type="hidden" name="@Model.RouteParameterName" value="@Model.RouteParameterValue" />
+				<div class="mb-3">
+					<select class="form-select" name="@Model.SelectionFieldName" required>
+						<option value="">Select...</option>
+						@foreach (var option in Model.Options)
+						{
+							<option value="@option.Id">@option.Label</option>
+						}
+					</select>
+				</div>
+				<button type="submit" class="btn btn-primary">@Model.SubmitButtonText</button>
+			</form>
+		}
+	</div>
+</div>

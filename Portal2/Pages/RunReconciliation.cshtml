@@ -1,0 +1,35 @@
+@page
+@model RunReconciliationModel
+@{
+	ViewData["Title"] = "Run Reconciliation";
+}
+
+<div class="container mt-5">
+	<div class="row mb-4">
+		<div class="col-md-8">
+			<h1>Run Reconciliation</h1>
+		</div>
+	</div>
+
+	@if (!string.IsNullOrEmpty(Model.Message))
+	{
+		<div class="alert alert-info alert-dismissible fade show" role="alert">
+			@Model.Message
+			<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+		</div>
+	}
+
+	<form method="post" class="row g-3 align-items-end">
+		<div class="col-md-3">
+			<label asp-for="SettlementDateStart" class="form-label">Settlement Date Start</label>
+			<input asp-for="SettlementDateStart" type="date" class="form-control" />
+		</div>
+		<div class="col-md-3">
+			<label asp-for="SettlementDateEnd" class="form-label">Settlement Date End</label>
+			<input asp-for="SettlementDateEnd" type="date" class="form-control" />
+		</div>
+		<div class="col-12">
+			<button type="submit" class="btn btn-primary">Run Reconciliation</button>
+		</div>
+	</form>
+</div>

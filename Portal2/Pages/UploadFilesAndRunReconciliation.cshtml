@@ -1,14 +1,14 @@
-@page
+@page "/UploadFiles"
 @model UploadFilesAndRunReconciliationModel
 @{
-	ViewData["Title"] = "Upload Files and Run Reconciliation";
+	ViewData["Title"] = "Upload Files";
 }
 
 <div class="container mt-5">
-	<h1>Upload Files and Run Reconciliation</h1>
+	<h1>Upload Files</h1>
 
 	<div class="alert alert-info alert-dismissible fade show" role="alert">
-		<strong>Instructions:</strong> Please upload both files at once to ensure accurate reconciliation. Select the Settlement Entry file and Transaction Ledger file, then click the "Upload and Process Files" button to proceed.
+		<strong>Instructions:</strong> Upload your Settlement Entry file and Transaction Ledger file, then click "Upload Files".
 		<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
 	</div>
 
@@ -50,7 +50,7 @@
 		</div>
 
 		<div class="col-12">
-			<button type="submit" class="btn btn-primary">Upload and Process Files</button>
+			<button type="submit" class="btn btn-primary">Upload Files</button>
 		</div>
 	</form>
 
