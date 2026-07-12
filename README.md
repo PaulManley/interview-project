@@ -10,7 +10,7 @@ This is a full 2 day project.
 
 Lines of Code:  ~6000
 
-Short Video:  
+Short Video:  https://www.loom.com/share/2c3b97a696e84d00b205d6435acb82b6
 
 ## Project Overview
 You are building a Transaction Ledger and Settlement File matching and error platform.  
