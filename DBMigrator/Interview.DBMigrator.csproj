@@ -8,6 +8,8 @@
 
 	<ItemGroup>
 	  <None Remove="Sproc\20260711_Reconciliation_DirectMatch.sql" />
+	  <None Remove="Sproc\20260711_Reconciliation_MatchSplitSettlement.sql" />
+	  <None Remove="Sproc\20260711_Reconciliation_MatchWithWiggleRoom.sql" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -34,6 +36,8 @@
 
 	<ItemGroup>
 	  <EmbeddedResource Include="Sproc\20260711_Reconciliation_DirectMatch.sql" />
+	  <EmbeddedResource Include="Sproc\20260711_Reconciliation_MatchSplitSettlement.sql" />
+	  <EmbeddedResource Include="Sproc\20260711_Reconciliation_MatchWithWiggleRoom.sql" />
 	</ItemGroup>
 
 	<ItemGroup>

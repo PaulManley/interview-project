@@ -380,7 +380,7 @@ public class PostProcessing_MatchSplit( IFileOperationRepository pRepos ) : IMat
 	public async Task DataMatch( DateTimeOffset? dtStartSettlementEntry, DateTimeOffset? dtEndSettlementEntry )
 	{
 		int rows = await pRepos.Reconciliation_MatchingSplit( dtStartSettlementEntry, dtEndSettlementEntry );
-		L.Debug( $"Matched {rows}", new { Name = "PostProcessing_MatchSplit", Rows = rows, Wiggle = 2 } );
+		L.Debug( $"Matched {rows}", new { Name = "PostProcessing_MatchSplit", Rows = rows } );
 	}
 }
 

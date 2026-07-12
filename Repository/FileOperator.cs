@@ -147,13 +147,19 @@ public class FileOperator( IConnectionFactory Conn, ILogger L ) : IFileOperation
 		ZAssert.True( TransactionLedgerId.IsValid(), "Transaction Ledger Id is not valid" );
 
 		using var db = Conn.Create();
-		int rowsAffected = await db.GetTable<SettlementEntry>()
+
+		int rowsAffectedS = await db.GetTable<SettlementEntry>()
 			.Where( x => x.Id == SettlementEntryId )
 			.Set( t => t.TransactionLedgerId, TransactionLedgerId )
 			.Set( t => t.Status ,"Match")
 			.UpdateAsync();
 
-		ZAssert.True( rowsAffected == 1, "Incorrect number of rows updated",structuredObject: new { rowsAffected } );
+		int rowsAffectedT = await db.GetTable<TransactionLedger>()
+			.Where( x => x.Id == TransactionLedgerId )
+			.Set( t => t.Status ,"Match")
+			.UpdateAsync();
+
+		ZAssert.True( rowsAffectedS + rowsAffectedT == 2, "Incorrect number of rows updated",structuredObject: new { rowsAffectedS , rowsAffectedT } );
 
 	}
 

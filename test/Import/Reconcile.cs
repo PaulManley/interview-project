@@ -61,14 +61,9 @@ public class Reconcile( TestStartupFixture Fixture )
 		await using FileStream fs2 = new( fileNamePath, FileMode.Open );
 		await wfTran.TransactionWorkflow( fs2, DateTimeOffset.UtcNow, path, fileName, feeScheduleObject );
 
-		var nonReconciledItems = await db.LoadUnreconciled();
 
-
-
-		/*
 		var reconcileProcess = provider.GetRequiredService<Interview.Import.Reconcile.Reconciliation>();
-		await reconcileProcess.Process( nonReconciledItems.Settlements, nonReconciledItems.Transactions);
-		*/
+		await reconcileProcess.Process( null, null);
 
 	}
 }

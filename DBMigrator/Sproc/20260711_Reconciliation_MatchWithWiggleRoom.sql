@@ -1,21 +1,4 @@
-﻿/*
-If you uncomment out the top and bottom you'll get an Arrange, Act, Assert style script that's easier to test than running the actual app.
-*/
-
-
-/*
-
-UPDATE settlemententry 
-	SET TransactionLedgerId = NULL, Status = 'Imported'
-	WHERE TransactionLedgerId IS NOT NULL;
-
-UPDATE TransactionLedger SET Status = 'Imported';
-
-*/
-
-DELIMITER //
-
-DROP PROCEDURE IF EXISTS Reconciliation_MatchWithWiggleRoom //
+﻿DROP PROCEDURE IF EXISTS Reconciliation_MatchWithWiggleRoom;
 
 
 CREATE PROCEDURE Reconciliation_MatchWithWiggleRoom( IN dtStart Date , IN dtEnd Date, IN WiggleAmount int )
@@ -42,7 +25,8 @@ SELECT
 	FROM settlemententry S1
 		INNER JOIN settlemententry S2 ON 
         ( 
-			S1.CardType = S2.CardType
+			1=1
+			AND S1.CardType = S2.CardType
             AND ABS(DATEDIFF(S1.SettlementDate, S2.SettlementDate)) <= 4
             AND ( S2.MerchantRef IS NULL OR S2.MerchantRef = '' )
 		)
@@ -66,7 +50,8 @@ CREATE TEMPORARY TABLE TmpSettlementMatches20260711 AS
 		FROM settlemententry AS S
 			INNER JOIN transactionledger AS T ON 
             (
-				T.MerchantReferenceNo = S.MerchantRef
+				1=1
+				AND T.MerchantReferenceNo = S.MerchantRef
 				AND T.CardType = S.CardType
 				AND T.MerchantId = S.MerchantId
 				AND T.CardLast4 = S.CardLast4
@@ -135,7 +120,7 @@ ALTER TABLE TmpFirstSettlementMatches20260711
 Update each SettlementEntry with its earliest matching ledger record.
 */
 
-    
+/*    
 UPDATE settlemententry AS S
 	INNER JOIN TmpFirstSettlementMatches20260711 AS M ON (M.SettlementEntryId = S.Id)
 	INNER JOIN transactionledger AS T ON (T.Id = M.TransactionLedgerId)
@@ -146,11 +131,28 @@ UPDATE settlemententry AS S
 		S.Notification = 'Off by a wiggle amount'
 	WHERE S.TransactionLedgerId IS NULL 
 	;
+*/
 
+-- Update SettlementEntry
+UPDATE settlemententry AS S
+	INNER JOIN TmpFirstSettlementMatches20260711 AS M ON ( M.SettlementEntryId = S.Id )
+	SET
+		S.TransactionLedgerId = M.TransactionLedgerId,
+		S.Status = 'Match',
+		S.Notification = 'Off by a wiggle amount'
+	WHERE S.TransactionLedgerId IS NULL;
 
 -- Shows the number of SettlementEntry rows updated. 
 SELECT ROW_COUNT() AS SettlementEntriesUpdated;
 
+
+-- Update TransactionLedger
+UPDATE transactionledger AS T
+	INNER JOIN TmpFirstSettlementMatches20260711 AS M ON ( M.TransactionLedgerId = T.Id )
+	INNER JOIN settlemententry AS S ON ( S.Id = M.SettlementEntryId )
+	SET
+		T.Status = 'Match'
+	WHERE S.TransactionLedgerId = M.TransactionLedgerId;
 
 
 /* 
@@ -160,22 +162,5 @@ DROP TEMPORARY TABLE IF EXISTS TmpFirstSettlementMatches20260711;
 DROP TEMPORARY TABLE IF EXISTS TmpSettlementMatches20260711;
 
 
-END //
-DELIMITER ;
-
-/*
-
-CALL Reconciliation_MatchWithWiggleRoom('2026-07-01', '2026-07-11', 1);
-CALL Reconciliation_MatchWithWiggleRoom(null, null, 2);
-
--- Optionally verify results
-SELECT * FROM settlemententry 
-	WHERE TransactionLedgerId IS NOT NULL 
-	ORDER BY Id DESC LIMIT 10;
-
--- Show count of updated records
-SELECT COUNT(*) AS TotalMatched 
-	FROM settlemententry 
-	WHERE TransactionLedgerId IS NOT NULL;
-
-*/
+END
+;

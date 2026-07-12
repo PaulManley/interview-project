@@ -22,6 +22,7 @@ public class v20260711_0002_Sprocs(  ) : FluentMigrator.Migration
 		string[] sprocList = 
 			[
 				"Sproc/20260711_Reconciliation_DirectMatch.sql",
+				"Sproc/20260711_Reconciliation_MatchSplitSettlement.sql",
 				"Sproc/20260711_Reconciliation_MatchWithWiggleRoom.sql"
 			];
 		

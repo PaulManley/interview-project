@@ -66,21 +66,32 @@ public class Reconciliation(IMatchDataSettlement[] PreProcessingMatching,  IMatc
 	protected async Task Processing_SlowNSquared( P.SettlementEntry[] Settlements, P.TransactionLedger[] Transactions)
 	{
 		PatternsSettlement = PatternsSettlement.ToSafeArray().OrderBy( x => x.Sequence ).ToSafeArray();
-		var trans = Transactions.ToSafeArray();
+		var unmatchedTransactions = Transactions.ToList();
 		var settlements = Settlements.ToSafeArray();
+		var matchedSettlementIds = new HashSet<Guid>();
 
 		foreach (var Pattern in PatternsSettlement)
 		{
+			var settlementMatches = new List<(P.SettlementEntry Settlement, Guid TransactionId)>();
+
 			foreach(var settlement in settlements)
 			{
-				if ( settlement.TransactionLedgerId.IsInvalid() )
+				if ( settlement.TransactionLedgerId.IsInvalid() && !matchedSettlementIds.Contains(settlement.Id) )
 				{
-					var id = Pattern.FindMatch( settlement, trans );
+					var id = Pattern.FindMatch( settlement, unmatchedTransactions.ToArray() );
 					if ( id.IsValid() )
 					{
-						settlement.TransactionLedgerId = id;
+						settlementMatches.Add( (settlement, id.Value) );
+						matchedSettlementIds.Add(settlement.Id);
 					}
 				}
+			}
+
+			// Remove matched transactions and update settlements for this pattern
+			foreach(var match in settlementMatches)
+			{
+				match.Settlement.TransactionLedgerId = match.TransactionId;
+				unmatchedTransactions.RemoveAll( x => x.Id == match.TransactionId );
 			}
 		}
 
@@ -89,7 +100,7 @@ public class Reconciliation(IMatchDataSettlement[] PreProcessingMatching,  IMatc
 		{
 			await pRepos.UpdateSettlement(s.Id, s.TransactionLedgerId.Value);
 		}
-		
+
 	}
 
 

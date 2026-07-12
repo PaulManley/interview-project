@@ -1,8 +1,4 @@
-﻿
-
-DELIMITER //
-
-DROP PROCEDURE IF EXISTS Reconciliation_DirectMatch //
+﻿DROP PROCEDURE IF EXISTS Reconciliation_DirectMatch;
 
 
 CREATE PROCEDURE Reconciliation_DirectMatch( IN dtStart Date , IN dtEnd Date )
@@ -30,7 +26,8 @@ CREATE TEMPORARY TABLE TmpSettlementMatches20260711 AS
 		FROM settlemententry AS S
 			INNER JOIN transactionledger AS T ON 
             (
-				T.MerchantReferenceNo = S.MerchantRef
+				1=1
+				AND T.MerchantReferenceNo = S.MerchantRef
 				AND T.CardType = S.CardType
 				AND T.MerchantId = S.MerchantId
 				AND T.CardLast4 = S.CardLast4
@@ -95,20 +92,22 @@ ALTER TABLE TmpFirstSettlementMatches20260711
 Update each SettlementEntry with its earliest matching ledger record.
 */
 
-    
 UPDATE settlemententry AS S
-	INNER JOIN TmpFirstSettlementMatches20260711 AS M ON (M.SettlementEntryId = S.Id)
-	INNER JOIN transactionledger AS T ON (T.Id = M.TransactionLedgerId)
-	SET 
+	INNER JOIN TmpFirstSettlementMatches20260711 AS M ON ( M.SettlementEntryId = S.Id )
+	SET
 		S.TransactionLedgerId = M.TransactionLedgerId,
-		S.Status = 'Match',
-		T.Status = 'Match'
-	WHERE S.TransactionLedgerId IS NULL 
+		S.Status = 'Match'
+	WHERE S.TransactionLedgerId IS NULL
 	;
-
 
 -- Shows the number of SettlementEntry rows updated. 
 SELECT ROW_COUNT() AS SettlementEntriesUpdated;
+
+    
+UPDATE transactionledger AS T
+	INNER JOIN TmpFirstSettlementMatches20260711 AS M ON ( M.TransactionLedgerId = T.Id )
+	SET T.Status = 'Match'
+	;
 
 
 
@@ -119,22 +118,4 @@ DROP TEMPORARY TABLE IF EXISTS TmpFirstSettlementMatches20260711;
 DROP TEMPORARY TABLE IF EXISTS TmpSettlementMatches20260711;
 
 
-END //
-DELIMITER ;
-
-/*
-
-CALL Reconciliation_DirectMatch('2026-07-01', '2026-07-11');
-CALL Reconciliation_DirectMatch(null, null);
-
--- Optionally verify results
-SELECT * FROM settlemententry 
-	WHERE TransactionLedgerId IS NOT NULL 
-	ORDER BY Id DESC LIMIT 10;
-
--- Show count of updated records
-SELECT COUNT(*) AS TotalMatched 
-	FROM settlemententry 
-	WHERE TransactionLedgerId IS NOT NULL;
-
-*/
+END
